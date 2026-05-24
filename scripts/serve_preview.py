@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import cgi
 import copy
+import datetime as dt
 import html
 import json
 import os
@@ -30,6 +31,7 @@ import generate_slide_json
 ROOT = Path(__file__).resolve().parents[1]
 PREVIEW_DIR = ROOT / "preview"
 UPLOAD_ROOT = ROOT / "_preview_uploads"
+AGENT_REQUEST_ROOT = UPLOAD_ROOT / "agent_requests"
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
 TEXT_EXTENSIONS = {".md", ".markdown", ".txt"}
 ZIP_TEXT_EXTENSIONS = {".docx", ".pptx"}
@@ -374,10 +376,120 @@ def validate_slide_json(deck: dict[str, Any]) -> None:
 def local_update(prompt: str, deck: dict[str, Any]) -> dict[str, Any]:
     updated = copy.deepcopy(deck)
     validate_slide_json(updated)
+    normalized = prompt.lower()
+    chinese_number_map = {
+        "一": 1,
+        "二": 2,
+        "两": 2,
+        "三": 3,
+        "四": 4,
+        "五": 5,
+        "六": 6,
+        "七": 7,
+        "八": 8,
+        "九": 9,
+        "十": 10,
+    }
+
+    def has_any(*words: str) -> bool:
+        return any(word.lower() in normalized or word in prompt for word in words)
+
+    def compact(value: str, limit: int = 54) -> str:
+        value = re.sub(r"\s+", " ", value).strip()
+        return value if len(value) <= limit else value[: limit - 1].rstrip("，。；、 ") + "…"
+
+    def requested_slide_indexes() -> list[int]:
+        indexes: set[int] = set()
+        for match in re.finditer(r"第\s*(\d{1,2})\s*[页頁张張]", prompt):
+            indexes.add(int(match.group(1)) - 1)
+        for zh, value in chinese_number_map.items():
+            if f"第{zh}页" in prompt or f"第{zh}頁" in prompt or f"第{zh}张" in prompt:
+                indexes.add(value - 1)
+        return sorted(index for index in indexes if 0 <= index < len(updated["slides"]))
+
+    def target_slides() -> list[dict[str, Any]]:
+        indexes = requested_slide_indexes()
+        if indexes:
+            return [updated["slides"][index] for index in indexes]
+        return updated["slides"]
+
+    theme = updated.setdefault("deck", {}).setdefault("theme", {})
+    palette = theme.setdefault("palette", {})
+    if has_any("深色", "暗色", "科技风", "科技"):
+        palette.update({"background": "#0B1120", "foreground": "#E5E7EB", "accent": "#38BDF8"})
+        theme["font_family"] = theme.get("font_family") or "Microsoft YaHei"
+        for slide in updated["slides"]:
+            slide["transition"] = "fade"
+            for bullet in slide.get("bullets", []):
+                bullet["animation"] = {
+                    "type": "fly-in",
+                    "order": bullet.get("animation", {}).get("order", 1),
+                    "duration_ms": 520,
+                    "delay_ms": 0,
+                    "direction": "right",
+                }
+            for visual in slide.get("visuals", []):
+                visual["animation"] = {
+                    "type": "zoom-in",
+                    "order": visual.get("animation", {}).get("order", 4),
+                    "duration_ms": 620,
+                    "delay_ms": 60,
+                    "direction": "center",
+                }
+    elif has_any("答辩", "学术", "论文"):
+        palette.update({"background": "#F8FAFC", "foreground": "#111827", "accent": "#0F766E"})
+
+    if has_any("精简", "压缩", "减少文字", "少一点", "三个要点", "3个要点"):
+        keep = 3 if has_any("三个要点", "3个要点", "三点") else 4
+        for slide in target_slides():
+            slide["bullets"] = slide.get("bullets", [])[:keep]
+            for order, bullet in enumerate(slide["bullets"], start=1):
+                bullet["text"] = compact(bullet.get("text", ""))
+                bullet.setdefault("animation", {})["order"] = order
+
+    if has_any("突出实验", "突出结果", "突出结论", "强调实验", "强调结果"):
+        for slide in target_slides():
+            for bullet in slide.get("bullets", []):
+                text = bullet.get("text", "")
+                if re.search(r"mAP|Precision|FLOPs|权重|计算|提升|降低|减少|结果|实验", text, re.I):
+                    bullet["emphasis"] = "evidence"
+
+    title_match = re.search(r"(?:标题|题目)\s*(?:改成|修改为|设为|变成)\s*[：:「“\"]?(.+?)[」”\"]?$", prompt)
+    if title_match:
+        updated["slides"][0]["title"] = compact(title_match.group(1), 36)
+
+    visible_summary = compact(prompt, 72)
+    updated["deck"]["subtitle"] = "已按对话更新：" + visible_summary
     first_slide = updated["slides"][0]
+    if not title_match and has_any("风格", "深色", "暗色", "科技", "答辩"):
+        first_slide["subtitle"] = "当前风格已更新：" + visible_summary
     notes = first_slide.get("speaker_notes", "")
-    first_slide["speaker_notes"] = (notes + "\n" if notes else "") + "User revision request: " + prompt
+    first_slide["speaker_notes"] = (notes + "\n" if notes else "") + "Local visible update: " + prompt
+    validate_slide_json(updated)
     return updated
+
+
+def record_agent_request(prompt: str, deck: dict[str, Any]) -> dict[str, str]:
+    AGENT_REQUEST_ROOT.mkdir(parents=True, exist_ok=True)
+    request_id = dt.datetime.now().strftime("%Y%m%d_%H%M%S_") + uuid.uuid4().hex[:8]
+    payload = {
+        "request_id": request_id,
+        "created_at": dt.datetime.now(dt.UTC).isoformat(),
+        "prompt": prompt,
+        "slide_json": deck,
+        "status": "pending_codex_agent",
+    }
+    request_path = AGENT_REQUEST_ROOT / f"{request_id}.json"
+    latest_path = AGENT_REQUEST_ROOT / "latest.json"
+    data = json.dumps(payload, ensure_ascii=False, indent=2)
+    request_path.write_text(data, encoding="utf-8")
+    latest_path.write_text(data, encoding="utf-8")
+    print(f"[toppt-agent-request] {request_id}: {prompt}", flush=True)
+    return {
+        "request_id": request_id,
+        "request_path": str(request_path),
+        "latest_path": str(latest_path),
+    }
 
 
 def call_openai_update(prompt: str, deck: dict[str, Any]) -> dict[str, Any]:
@@ -427,6 +539,7 @@ def call_openai_update(prompt: str, deck: dict[str, Any]) -> dict[str, Any]:
 class PreviewHandler(BaseHTTPRequestHandler):
     deck_path: Path | None = None
     current_asset_root: Path | None = None
+    preview_dir: Path = PREVIEW_DIR
 
     def log_message(self, format: str, *args: object) -> None:
         sys.stderr.write("%s - %s\n" % (self.address_string(), format % args))
@@ -464,13 +577,8 @@ class PreviewHandler(BaseHTTPRequestHandler):
             if not isinstance(deck, dict):
                 raise ValueError("slide_json must be an object")
             validate_slide_json(deck)
-            mode = "llm"
-            try:
-                updated = call_openai_update(prompt, deck)
-            except RuntimeError:
-                updated = local_update(prompt, deck)
-                mode = "local"
-            self.send_json({"slide_json": updated, "mode": mode})
+            agent_request = record_agent_request(prompt, deck)
+            self.send_json({"slide_json": deck, "mode": "queued-for-codex", "agent_request": agent_request})
         except Exception as exc:
             self.send_json({"error": str(exc)}, status=400)
 
@@ -549,13 +657,14 @@ class PreviewHandler(BaseHTTPRequestHandler):
     def current_deck(self) -> dict[str, Any]:
         if self.deck_path and self.deck_path.exists():
             return load_json(self.deck_path)
-        return load_json(PREVIEW_DIR / "sample_slide_deck.json")
+        return load_json(self.preview_dir / "sample_slide_deck.json")
 
     def serve_static(self, raw_path: str) -> None:
         relative = "index.html" if raw_path in ("", "/") else raw_path.lstrip("/")
-        path = (PREVIEW_DIR / relative).resolve()
+        preview_dir = self.preview_dir.resolve()
+        path = (preview_dir / relative).resolve()
         try:
-            path.relative_to(PREVIEW_DIR)
+            path.relative_to(preview_dir)
         except ValueError:
             self.send_error(403)
             return
@@ -651,11 +760,23 @@ def main() -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--deck", default=None, help="Optional Slide-JSON path to serve as the current deck")
+    parser.add_argument("--preview-dir", default=None, help="Optional agent-authored HTML preview directory")
     args = parser.parse_args()
+
+    if args.preview_dir:
+        PreviewHandler.preview_dir = Path(args.preview_dir).resolve()
 
     if args.deck:
         PreviewHandler.deck_path = Path(args.deck).resolve()
-        validate_slide_json(load_json(PreviewHandler.deck_path))
+        deck = load_json(PreviewHandler.deck_path)
+        validate_slide_json(deck)
+        source_manifest = deck.get("deck", {}).get("source_manifest")
+        if source_manifest:
+            manifest_path = Path(source_manifest).expanduser()
+            if not manifest_path.is_absolute():
+                manifest_path = (PreviewHandler.deck_path.parent / manifest_path).resolve()
+            if manifest_path.name == "manifest.json":
+                PreviewHandler.current_asset_root = manifest_path.parent
 
     server = ThreadingHTTPServer((args.host, args.port), PreviewHandler)
     print(f"Serving preview at http://{args.host}:{args.port}/")

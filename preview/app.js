@@ -290,7 +290,8 @@
       })
       .then(function (payload) {
         setDeck(payload.slide_json, state.basePath);
-        setStatus("Updated via " + (payload.mode || "backend") + ".");
+        var suffix = payload.agent_request ? " Request " + payload.agent_request.request_id + " is visible to Codex." : "";
+        setStatus("Queued for Codex." + suffix);
       })
       .catch(function (error) {
         setStatus(error.message);

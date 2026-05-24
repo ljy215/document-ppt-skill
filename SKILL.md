@@ -9,16 +9,16 @@ description: Use when the user gives an academic paper file and wants it parsed 
 
 Use this skill whenever the user provides a local academic paper or document path and asks to generate PPT, parse the file, preview it, revise it, or perform another operation related to turning the file into slides.
 
-The default workflow is now an end-to-end preview-first PPT workflow:
+The default workflow is now an end-to-end agent-authored preview-first PPT workflow:
 
 1. Upload document.
 2. Extract text, figures, tables, captions, page coordinates, and asset URLs.
 3. Generate a strict Slide-JSON intermediate state instead of direct Markdown.
-4. Generate and serve an animated HTML preview with pure JavaScript.
-5. Let the user revise the deck in the web page through the right-side conversation box.
+4. Codex generates an agent-authored animated HTML preview with pure JavaScript from the Slide-JSON and extracted assets.
+5. Let the user revise the deck in the web page through the right-side conversation box; the page records the user's prompt for Codex instead of pretending to perform autonomous browser-side design intelligence.
 6. Export the current front-end Slide-JSON state to a native `.pptx` from the web page.
 
-When the user says something like `帮我根据 "E:\paper-reader\xxx.pdf" 生成ppt`, do not jump straight to a final `.pptx`. Run the parsing and preview server first, give the user the preview URL, and let the user review or revise the deck in the browser before exporting.
+When the user says something like `帮我根据 "E:\paper-reader\xxx.pdf" 生成ppt`, do not jump straight to a final `.pptx`. Parse the document, generate Slide-JSON, create an agent-authored HTML preview bundle, run the preview server, give the user the preview URL, and let the user review or revise the deck in the browser before exporting.
 
 ## Workflow
 
@@ -54,9 +54,9 @@ Use `--dry-run` when validating the pipeline without an LLM API key.
 
 7. Let the user revise inside the preview page:
    - The right-side chat box sends the user prompt plus the current Slide-JSON to the backend.
-   - If LLM credentials are configured, the backend updates the Slide-JSON through the LLM.
-   - If credentials are not configured, the backend keeps a local fallback update and the agent may still edit the Slide-JSON or preview assets directly when asked.
-   - The preview must hot-update from the returned Slide-JSON.
+   - The backend records the request under `_preview_uploads/agent_requests/latest.json` and logs the prompt for Codex.
+   - Codex reads the recorded prompt, then edits the agent-authored `index.html`, `styles.css`, `app.js`, and/or `slide_deck.json` files to change the actual preview.
+   - Do not rely on browser-side LLM calls for style or layout generation. The HTML generation and conversational design changes are Codex agent work.
 8. Let the user click `Export PPTX` in the preview page. The page sends the current front-end Slide-JSON to `/api/pptx/export`; the backend compiles it with `scripts/compile_pptx.py` and returns a downloadable `.pptx`.
 9. For static/offline preview bundles, use:
 
@@ -64,7 +64,7 @@ Use `--dry-run` when validating the pipeline without an LLM API key.
 python path/to/toppt/scripts/create_agent_preview_bundle.py "paper-name_slide_deck.json" --output-dir "preview_runs/paper-name"
 ```
 
-10. If the user asks for style changes such as "改成深色科技风" or "更像论文答辩 PPT", prefer the browser conversation flow first. If the requested change requires renderer/CSS behavior that the backend JSON update cannot express, edit `preview/styles.css`, `preview/app.js`, or the generated preview bundle directly and verify in the browser.
+10. If the user asks for style changes such as "改成深色科技风" or "更像论文答辩 PPT" in the browser conversation box, read `_preview_uploads/agent_requests/latest.json`, apply the request to the generated preview bundle, and verify in the browser.
 
 11. For the legacy Markdown report workflow, `scripts/extract_paper_assets.py` is still available:
 
@@ -92,7 +92,7 @@ python path/to/toppt/scripts/extract_paper_assets.py "paper-name.pdf" --output-d
 
 - Phase 1: Python multimodal extraction engine using PyMuPDF and optional pdfplumber. Output `manifest.json`.
 - Phase 2: Python LLM orchestration that converts `manifest.json` into strict Slide-JSON. The LLM must not directly output Markdown. The schema lives at `schemas/slide-json.schema.json`.
-- Phase 3: Pure JavaScript HTML preview renderer plus a backend upload/update API. The preview page is the main place where the user reviews and requests conversational revisions.
+- Phase 3: Pure JavaScript HTML preview renderer plus a backend upload/update API. Codex authors the HTML preview bundle and applies conversational revisions captured from the page.
 - Phase 4: PPTX compiler using Python `python-pptx`. The preview page sends the current Slide-JSON to the backend export API, which writes a native `.pptx` with layout, figures, theme colors, slide transitions, and animation intent preserved in speaker notes.
 
 ## Report Requirements
