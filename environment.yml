@@ -1,0 +1,10 @@
+name: ppt
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - pymupdf
+      - pdfplumber
+      - python-pptx

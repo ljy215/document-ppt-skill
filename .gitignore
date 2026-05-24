@@ -1,5 +1,7 @@
 *_assets/
 *_multimodal/
+*_slide_deck.json
+slide_deck.json
 .venv/
 __pycache__/
 *.pyc

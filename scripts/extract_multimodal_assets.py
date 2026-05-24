@@ -135,6 +135,30 @@ def nearest_caption(asset: Asset, captions: list[Caption]) -> None:
         asset.role_hints.append("model_candidate")
 
 
+def enrich_caption_text(captions: list[Caption], text_blocks: list[TextBlock]) -> None:
+    for caption in captions:
+        if len(caption.text) > 40:
+            continue
+        candidates = []
+        for block in text_blocks:
+            if block.page != caption.page:
+                continue
+            if block.text == caption.text or CAPTION_RE.match(block.text):
+                continue
+            same_column = abs(block.bbox[0] - caption.bbox[0]) < 80
+            near_below = 0 <= block.bbox[1] - caption.bbox[1] <= 90
+            if same_column and near_below:
+                candidates.append(block)
+        candidates.sort(key=lambda item: (item.bbox[1], item.bbox[0]))
+        if candidates:
+            continuation = " ".join(block.text for block in candidates[:2])
+            caption.text = compact_spaces(f"{caption.text} {continuation}")
+
+
+def compact_spaces(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
 def nearby_text(asset: Asset, blocks: list[TextBlock], limit: int = 4) -> None:
     same_page = [b for b in blocks if b.page == asset.page]
     scored = sorted((rect_distance(asset.bbox, b.bbox), b) for b in same_page)
@@ -247,6 +271,7 @@ def extract_text_and_figures(pdf_path: Path, out_dir: Path, zoom: float) -> tupl
             }
         )
 
+    enrich_caption_text(captions, text_blocks)
     manifest = {
         "schema_version": "paper-reader.multimodal.v1",
         "source": {

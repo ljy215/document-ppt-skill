@@ -28,7 +28,7 @@ Output directory:
 Core command:
 
 ```bash
-python scripts/extract_multimodal_assets.py "paper.pdf" --output-dir "paper_multimodal"
+conda run -n ppt python scripts/extract_multimodal_assets.py "paper.pdf" --output-dir "paper_multimodal"
 ```
 
 ## Manifest Contract

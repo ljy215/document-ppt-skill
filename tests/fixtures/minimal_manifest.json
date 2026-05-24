@@ -1,0 +1,54 @@
+{
+  "schema_version": "paper-reader.multimodal.v1",
+  "source": {
+    "pdf_path": "tests/fixtures/sample.pdf",
+    "title": "Minimal Test Paper",
+    "page_count": 2
+  },
+  "pages": [
+    {
+      "page": 1,
+      "width": 595.28,
+      "height": 841.89,
+      "image_url": "assets/pages/page_001.png",
+      "text": "Abstract. This paper proposes a compact document-to-slide workflow. Introduction. Existing workflows lose figures and tables.",
+      "blocks": []
+    },
+    {
+      "page": 2,
+      "width": 595.28,
+      "height": 841.89,
+      "image_url": "assets/pages/page_002.png",
+      "text": "Method. The system extracts multimodal evidence and generates a structured intermediate state.",
+      "blocks": []
+    }
+  ],
+  "captions": [
+    {
+      "id": "caption_p2_001",
+      "page": 2,
+      "kind": "figure",
+      "bbox": [72.0, 610.0, 420.0, 632.0],
+      "text": "Fig. 1. Overview of the document-to-slide architecture."
+    }
+  ],
+  "assets": [
+    {
+      "id": "figure_p2_001",
+      "kind": "figure",
+      "page": 2,
+      "bbox": [70.0, 250.0, 500.0, 600.0],
+      "url": "assets/figures/figure_p2_001.png",
+      "caption_id": "caption_p2_001",
+      "caption_text": "Fig. 1. Overview of the document-to-slide architecture.",
+      "caption_distance": 120.0,
+      "nearby_text_block_ids": [],
+      "nearby_text": [
+        "The system extracts multimodal evidence and generates a structured intermediate state."
+      ],
+      "role_hints": ["model_candidate"],
+      "csv_url": null,
+      "source": "pymupdf"
+    }
+  ]
+}
