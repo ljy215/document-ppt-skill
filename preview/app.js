@@ -232,6 +232,35 @@
     reader.readAsText(file, "utf-8");
   }
 
+  function uploadDocument(file) {
+    if (!file) {
+      return;
+    }
+    var form = new FormData();
+    form.append("document", file);
+    setStatus("Uploading document, extracting content, and generating slides...");
+    fetch("/api/documents/upload", {
+      method: "POST",
+      body: form
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.text().then(function (text) {
+            throw new Error(text || "Upload failed.");
+          });
+        }
+        return response.json();
+      })
+      .then(function (payload) {
+        var baseUrl = new URL(payload.asset_base_url || "/deck-assets/", window.location.href).toString();
+        setDeck(payload.slide_json, baseUrl);
+        setStatus("Parsed " + payload.filename + " and rendered " + payload.slides + " slides.");
+      })
+      .catch(function (error) {
+        setStatus(error.message);
+      });
+  }
+
   function sendPrompt() {
     if (!state.deck) {
       setStatus("Load a deck first.");
@@ -281,6 +310,10 @@
       render();
     });
     els.applyJson.addEventListener("click", applyJsonFromEditor);
+    els.documentFile.addEventListener("change", function (event) {
+      uploadDocument(event.target.files[0]);
+      event.target.value = "";
+    });
     els.deckFile.addEventListener("change", function (event) {
       readUploadedDeck(event.target.files[0]);
     });
@@ -304,6 +337,7 @@
       "slideCounter",
       "prevSlide",
       "nextSlide",
+      "documentFile",
       "deckFile",
       "jsonEditor",
       "applyJson",

@@ -2,9 +2,9 @@
 
 ## Goal
 
-Render Phase 2 Slide-JSON as an animated HTML preview using pure JavaScript, then support conversational edits by sending the user prompt and current Slide-JSON to a Python backend that returns an updated JSON document.
+Render uploaded documents as animated HTML previews using pure JavaScript, then support conversational edits by sending the user prompt and current Slide-JSON to a Python backend that returns an updated JSON document.
 
-Phase 3 does not compile PPTX. It proves that Slide-JSON can drive a live, editable preview.
+Phase 3 does not compile PPTX. It proves that ordinary document uploads can be converted into Slide-JSON and drive a live, editable preview.
 
 ## Files
 
@@ -38,13 +38,25 @@ To preview a generated deck, pass it explicitly:
 python scripts/serve_preview.py --deck paper_slide_deck.json
 ```
 
+The browser upload control accepts:
+
+- `.pdf`
+- `.docx`
+- `.pptx`
+- `.md`
+- `.markdown`
+- `.txt`
+- `.json`
+
+PDF files run through Phase 1 multimodal extraction and Phase 2 Slide-JSON generation. DOCX, PPTX, Markdown, and TXT files use a lightweight Python text extractor before Phase 2 generation. JSON files are treated as Slide-JSON when they already match the schema; otherwise they are converted as text-like structured input.
+
 ## Frontend Contract
 
 The frontend is intentionally buildless and TypeScript-free:
 
 - `index.html` defines the app shell.
 - `styles.css` defines responsive 16:9 slides and CSS animation classes.
-- `app.js` loads Slide-JSON, validates the minimal shape, renders slides, handles navigation, imports JSON files, edits raw JSON, and sends conversational update requests.
+- `app.js` uploads source documents, receives generated Slide-JSON, validates the minimal shape, renders slides, handles navigation, imports JSON files for debugging, edits raw JSON, and sends conversational update requests.
 
 The renderer is data-driven:
 
@@ -78,6 +90,33 @@ Backend response:
 ```
 
 If no API key/model is configured, the Python server returns a deterministic local update that records the user prompt in speaker notes. This keeps the preview loop testable offline while preserving the same HTTP contract.
+
+## Document Upload Contract
+
+Frontend request:
+
+```http
+POST /api/documents/upload
+Content-Type: multipart/form-data
+
+document=<uploaded file>
+```
+
+Backend response:
+
+```json
+{
+  "filename": "paper.pdf",
+  "run_id": "paper_ab12cd34ef",
+  "manifest_url": "/generated/paper_ab12cd34ef/manifest/manifest.json",
+  "slide_json_url": "/generated/paper_ab12cd34ef/slide_deck.json",
+  "asset_base_url": "/generated/paper_ab12cd34ef/manifest/",
+  "slides": 3,
+  "slide_json": { "...": "generated deck" }
+}
+```
+
+Uploaded files and generated intermediates are stored under `_preview_uploads/`, which is ignored by git.
 
 ## Provider Configuration
 

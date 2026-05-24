@@ -6,3 +6,4 @@ slide_deck.json
 __pycache__/
 *.pyc
 .playwright-mcp/
+_preview_uploads/

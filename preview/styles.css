@@ -111,6 +111,18 @@ button:hover {
   font-size: 13px;
 }
 
+.primary-upload {
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--panel-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 6%, white);
+}
+
+.primary-upload span {
+  color: var(--text);
+  font-weight: 700;
+}
+
 .field-label {
   color: var(--muted);
   font-size: 13px;
