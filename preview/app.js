@@ -198,6 +198,9 @@
   }
 
   function currentDeckUrl() {
+    if (window.PREVIEW_DECK_URL) {
+      return window.PREVIEW_DECK_URL;
+    }
     var params = new URLSearchParams(window.location.search);
     return params.get("deck") || "/api/slide-json/current";
   }

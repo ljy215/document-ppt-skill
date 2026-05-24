@@ -2,9 +2,9 @@
 
 ## Goal
 
-Render uploaded documents as animated HTML previews using pure JavaScript, then support conversational edits by sending the user prompt and current Slide-JSON to a Python backend that returns an updated JSON document.
+Render uploaded documents as animated HTML previews using pure JavaScript, and support Agent-authored preview bundles that Codex or Claude Code can edit directly during conversation.
 
-Phase 3 does not compile PPTX. It proves that ordinary document uploads can be converted into Slide-JSON and drive a live, editable preview.
+Phase 3 does not compile PPTX. It proves that ordinary document uploads can be converted into Slide-JSON and drive a live preview, while design changes can be produced by the coding agent without requiring a browser-side LLM API key.
 
 ## Files
 
@@ -38,6 +38,14 @@ To preview a generated deck, pass it explicitly:
 python scripts/serve_preview.py --deck paper_slide_deck.json
 ```
 
+To create an Agent-authored static preview bundle:
+
+```bash
+python scripts/create_agent_preview_bundle.py paper_slide_deck.json --output-dir preview_runs/paper_preview
+```
+
+Then ask Codex or Claude Code to revise that bundle. The agent should edit `preview_runs/paper_preview/index.html`, `styles.css`, `app.js`, or `slide_deck.json` directly and verify in the browser.
+
 The browser upload control accepts:
 
 - `.pdf`
@@ -67,6 +75,10 @@ The renderer is data-driven:
 5. Re-render after JSON edits or backend updates.
 
 ## Conversational Update Contract
+
+This endpoint is optional runtime plumbing. It does not automatically use Codex or Claude Code quota.
+
+For the intended Skill experience, conversational edits happen in the Codex/Claude Code chat, and the agent modifies the generated preview files directly.
 
 Frontend request:
 

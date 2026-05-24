@@ -38,18 +38,26 @@ python path/to/paper-reader/scripts/generate_slide_json.py "paper-name_multimoda
 
 Use `--dry-run` when validating the pipeline without an LLM API key.
 
-5. For the legacy Markdown report workflow, `scripts/extract_paper_assets.py` is still available:
+5. Create an editable Agent-authored HTML preview bundle:
+
+```bash
+python path/to/paper-reader/scripts/create_agent_preview_bundle.py "paper-name_slide_deck.json" --output-dir "preview_runs/paper-name"
+```
+
+When this skill is running inside Codex or Claude Code, the agent must use its own model capability to revise the generated HTML/CSS/JS and Slide-JSON files according to the user's conversational instructions. Do not require the browser page to call an LLM API for design changes. For example, if the user says "改成深色科技风" or "更像论文答辩 PPT", edit `preview_runs/<name>/styles.css`, `app.js`, and/or `slide_deck.json` directly, then verify in the browser.
+
+6. For the legacy Markdown report workflow, `scripts/extract_paper_assets.py` is still available:
 
 ```bash
 python path/to/paper-reader/scripts/extract_paper_assets.py "paper-name.pdf" --output-dir "paper-name_assets"
 ```
 
-6. If the user still asks for a Chinese Markdown reading report, draft it in the current directory. Name it `<paper-stem>_reading-report.md` unless the user asks for another name.
-7. Insert local image links using relative paths from the report to the asset folder. Include:
+7. If the user still asks for a Chinese Markdown reading report, draft it in the current directory. Name it `<paper-stem>_reading-report.md` unless the user asks for another name.
+8. Insert local image links using relative paths from the report to the asset folder. Include:
    - A generated paper structure framework diagram, preferably Mermaid.
    - All model/module/architecture figures related to the paper's claimed innovations when the original paper contains them. Use extracted original images if available; otherwise create clean Mermaid reconstructions and clearly label them as reconstructions.
-8. Convert relevant extracted CSV tables to Markdown tables and embed them inside the effectiveness-evidence section, next to the explanation that uses them.
-9. Verify the report references existing image files and that every major figure/table discussed is aligned with the surrounding claim in the paper.
+9. Convert relevant extracted CSV tables to Markdown tables and embed them inside the effectiveness-evidence section, next to the explanation that uses them.
+10. Verify the report references existing image files and that every major figure/table discussed is aligned with the surrounding claim in the paper.
 
 ## Extraction Notes
 
@@ -64,7 +72,7 @@ python path/to/paper-reader/scripts/extract_paper_assets.py "paper-name.pdf" --o
 
 - Phase 1: Python multimodal extraction engine using PyMuPDF and optional pdfplumber. Output `manifest.json`.
 - Phase 2: Python LLM orchestration that converts `manifest.json` into strict Slide-JSON. The LLM must not directly output Markdown. The schema lives at `schemas/slide-json.schema.json`.
-- Phase 3: Pure JavaScript HTML preview renderer with CSS animation classes and conversational JSON hot updates.
+- Phase 3: Pure JavaScript HTML preview renderer plus Agent-authored HTML preview bundles. Conversational style edits are handled by the Codex/Claude Code agent editing generated files, not by requiring a runtime LLM key in the browser.
 - Phase 4: PPTX compiler using Python or pure JavaScript. It reads Slide-JSON and exports native `.pptx` slides with layout and animation intent.
 
 ## Report Requirements
