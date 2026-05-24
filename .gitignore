@@ -1,6 +1,7 @@
 *_assets/
 *_multimodal/
 *_slide_deck.json
+*_presentation.pptx
 slide_deck.json
 .venv/
 __pycache__/

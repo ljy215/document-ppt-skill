@@ -73,7 +73,7 @@ python path/to/toppt/scripts/extract_paper_assets.py "paper-name.pdf" --output-d
 - Phase 1: Python multimodal extraction engine using PyMuPDF and optional pdfplumber. Output `manifest.json`.
 - Phase 2: Python LLM orchestration that converts `manifest.json` into strict Slide-JSON. The LLM must not directly output Markdown. The schema lives at `schemas/slide-json.schema.json`.
 - Phase 3: Pure JavaScript HTML preview renderer plus Agent-authored HTML preview bundles. Conversational style edits are handled by the Codex/Claude Code agent editing generated files, not by requiring a runtime LLM key in the browser.
-- Phase 4: PPTX compiler using Python or pure JavaScript. It reads Slide-JSON and exports native `.pptx` slides with layout and animation intent.
+- Phase 4: PPTX compiler using Python `python-pptx`. It reads Slide-JSON and exports native `.pptx` slides with layout, figures, theme colors, slide transitions, and animation intent preserved in speaker notes.
 
 ## Report Requirements
 
