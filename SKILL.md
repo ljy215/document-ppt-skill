@@ -1,9 +1,9 @@
 ---
-name: paper-reader
+name: toppt
 description: Use when the user gives an academic paper file and wants it parsed into multimodal assets, summarized, previewed, edited conversationally, or converted into animated PPTX-ready slide content.
 ---
 
-# Paper Reader
+# ToPPT
 
 ## Overview
 
@@ -26,14 +26,14 @@ The current implemented foundation is Phase 1: multimodal document parsing and a
 2. Run `scripts/extract_multimodal_assets.py` on the selected file to extract text, captions, page coordinates, figure/table crops, table CSVs, page previews, and asset mappings:
 
 ```bash
-python path/to/paper-reader/scripts/extract_multimodal_assets.py "paper-name.pdf" --output-dir "paper-name_multimodal"
+python path/to/toppt/scripts/extract_multimodal_assets.py "paper-name.pdf" --output-dir "paper-name_multimodal"
 ```
 
 3. Read `manifest.json` as the canonical machine-readable output. Use `extracted_text.md` only as a human-friendly inspection aid.
 4. Generate strict Slide-JSON from the multimodal manifest:
 
 ```bash
-python path/to/paper-reader/scripts/generate_slide_json.py "paper-name_multimodal/manifest.json" --output "paper-name_slide_deck.json"
+python path/to/toppt/scripts/generate_slide_json.py "paper-name_multimodal/manifest.json" --output "paper-name_slide_deck.json"
 ```
 
 Use `--dry-run` when validating the pipeline without an LLM API key.
@@ -41,7 +41,7 @@ Use `--dry-run` when validating the pipeline without an LLM API key.
 5. Create an editable Agent-authored HTML preview bundle:
 
 ```bash
-python path/to/paper-reader/scripts/create_agent_preview_bundle.py "paper-name_slide_deck.json" --output-dir "preview_runs/paper-name"
+python path/to/toppt/scripts/create_agent_preview_bundle.py "paper-name_slide_deck.json" --output-dir "preview_runs/paper-name"
 ```
 
 When this skill is running inside Codex or Claude Code, the agent must use its own model capability to revise the generated HTML/CSS/JS and Slide-JSON files according to the user's conversational instructions. Do not require the browser page to call an LLM API for design changes. For example, if the user says "改成深色科技风" or "更像论文答辩 PPT", edit `preview_runs/<name>/styles.css`, `app.js`, and/or `slide_deck.json` directly, then verify in the browser.
@@ -49,7 +49,7 @@ When this skill is running inside Codex or Claude Code, the agent must use its o
 6. For the legacy Markdown report workflow, `scripts/extract_paper_assets.py` is still available:
 
 ```bash
-python path/to/paper-reader/scripts/extract_paper_assets.py "paper-name.pdf" --output-dir "paper-name_assets"
+python path/to/toppt/scripts/extract_paper_assets.py "paper-name.pdf" --output-dir "paper-name_assets"
 ```
 
 7. If the user still asks for a Chinese Markdown reading report, draft it in the current directory. Name it `<paper-stem>_reading-report.md` unless the user asks for another name.
