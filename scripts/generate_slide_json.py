@@ -312,7 +312,7 @@ def validate_deck(deck: dict[str, Any], manifest: dict[str, Any]) -> list[str]:
     return errors
 
 
-def main() -> int:
+def main_with_args(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("manifest", help="Path to Phase 1 manifest.json")
     parser.add_argument("--output", default=None, help="Output Slide-JSON path")
@@ -323,7 +323,7 @@ def main() -> int:
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--max-slides", type=int, default=8)
     parser.add_argument("--dry-run", action="store_true", help="Generate a deterministic skeleton without calling an LLM")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     manifest_path = Path(args.manifest).resolve()
     manifest = load_json(manifest_path)
@@ -362,6 +362,10 @@ def main() -> int:
         )
     )
     return 0
+
+
+def main() -> int:
+    return main_with_args()
 
 
 if __name__ == "__main__":
