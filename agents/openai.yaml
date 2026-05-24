@@ -1,4 +1,4 @@
 interface:
   display_name: "Paper Reader"
-  short_description: "Read papers and draft structured Chinese reports"
-  default_prompt: "Use $paper-reader to analyze the named paper in the current directory and generate a structured Markdown reading report."
+  short_description: "Extract multimodal paper assets and prepare slide-ready intermediates"
+  default_prompt: "Use $paper-reader to parse the named paper in the current directory into multimodal assets and a manifest, then continue toward Slide-JSON or a Chinese reading report as requested."

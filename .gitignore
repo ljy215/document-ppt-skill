@@ -1,0 +1,5 @@
+*_assets/
+*_multimodal/
+.venv/
+__pycache__/
+*.pyc
