@@ -28,7 +28,8 @@ class AgentPreviewBundleTests(unittest.TestCase):
             self.assertTrue((output_dir / "AGENT_NOTES.md").exists())
             self.assertIn("index.html", result["entry"])
             html = (output_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn("window.PREVIEW_DECK_URL", html)
+            self.assertIn("window.TOPPT_DECK", html)
+            self.assertIn("class=\"slide", html)
             deck = json.loads((output_dir / "slide_deck.json").read_text(encoding="utf-8"))
             self.assertEqual("document-ppt.slide.v1", deck["schema_version"])
 
