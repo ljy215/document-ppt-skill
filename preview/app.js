@@ -297,6 +297,37 @@
       });
   }
 
+  function exportPptx() {
+    if (!state.deck) {
+      setStatus("Load a deck first.");
+      return;
+    }
+    setStatus("Exporting PPTX...");
+    fetch("/api/pptx/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slide_json: state.deck })
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          return response.text().then(function (text) {
+            throw new Error(text || "Export failed.");
+          });
+        }
+        return response.json();
+      })
+      .then(function (payload) {
+        if (!payload.download_url) {
+          throw new Error("Export did not return a download URL.");
+        }
+        setStatus("PPTX exported: " + payload.filename);
+        window.location.href = payload.download_url;
+      })
+      .catch(function (error) {
+        setStatus(error.message);
+      });
+  }
+
   function bindEvents() {
     els.prevSlide.addEventListener("click", function () {
       if (!state.deck) {
@@ -321,6 +352,7 @@
       readUploadedDeck(event.target.files[0]);
     });
     els.sendPrompt.addEventListener("click", sendPrompt);
+    els.exportPptx.addEventListener("click", exportPptx);
     document.addEventListener("keydown", function (event) {
       if (event.target.tagName === "TEXTAREA") {
         return;
@@ -344,6 +376,7 @@
       "deckFile",
       "jsonEditor",
       "applyJson",
+      "exportPptx",
       "stage",
       "speakerNotes",
       "chatPrompt",

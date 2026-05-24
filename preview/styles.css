@@ -42,6 +42,17 @@ button:hover {
   border-color: var(--accent);
 }
 
+.primary-action {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.primary-action:hover {
+  filter: brightness(0.96);
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) minmax(260px, 320px);

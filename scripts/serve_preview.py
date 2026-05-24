@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree
 
+import compile_pptx
 import extract_multimodal_assets
 import generate_slide_json
 
@@ -448,6 +449,9 @@ class PreviewHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/documents/upload":
             self.handle_document_upload()
             return
+        if parsed.path == "/api/pptx/export":
+            self.handle_pptx_export()
+            return
         if parsed.path != "/api/slide-json/update":
             self.send_error(404)
             return
@@ -467,6 +471,31 @@ class PreviewHandler(BaseHTTPRequestHandler):
                 updated = local_update(prompt, deck)
                 mode = "local"
             self.send_json({"slide_json": updated, "mode": mode})
+        except Exception as exc:
+            self.send_json({"error": str(exc)}, status=400)
+
+    def handle_pptx_export(self) -> None:
+        try:
+            body = self.read_json_body()
+            deck = body.get("slide_json")
+            if not isinstance(deck, dict):
+                raise ValueError("slide_json must be an object")
+            validate_slide_json(deck)
+            title = deck.get("deck", {}).get("title") or "toppt"
+            run_id = safe_stem(title) + "_pptx_" + uuid.uuid4().hex[:10]
+            run_dir = (UPLOAD_ROOT / run_id).resolve()
+            run_dir.mkdir(parents=True, exist_ok=True)
+            deck_path = run_dir / "slide_deck.json"
+            output_path = run_dir / (safe_stem(title) + ".pptx")
+            deck_path.write_text(json.dumps(deck, ensure_ascii=False, indent=2), encoding="utf-8")
+            result = compile_pptx.compile_pptx(deck_path, output_path)
+            self.send_json(
+                {
+                    "filename": output_path.name,
+                    "download_url": f"/generated/{run_id}/{output_path.name}",
+                    "slides": result.get("slides", len(deck.get("slides", []))),
+                }
+            )
         except Exception as exc:
             self.send_json({"error": str(exc)}, status=400)
 
@@ -600,6 +629,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
             ".csv": "text/csv; charset=utf-8",
             ".txt": "text/plain; charset=utf-8",
             ".md": "text/markdown; charset=utf-8",
+            ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         }.get(path.suffix.lower(), "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", content_type)

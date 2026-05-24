@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Document PPT Preview</title>
+    <title>ToPPT Preview</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
@@ -12,15 +12,15 @@
         <div class="brand">
           <div class="brand-mark">P</div>
           <div>
-            <h1>Slide Preview</h1>
+            <h1>ToPPT Preview</h1>
             <p id="deckMeta">Loading deck</p>
           </div>
         </div>
 
         <div class="control-row">
-          <button id="prevSlide" type="button" title="Previous slide">‹</button>
+          <button id="prevSlide" type="button" title="Previous slide">&larr;</button>
           <span id="slideCounter">0 / 0</span>
-          <button id="nextSlide" type="button" title="Next slide">›</button>
+          <button id="nextSlide" type="button" title="Next slide">&rarr;</button>
         </div>
 
         <label class="file-picker primary-upload">
@@ -32,6 +32,8 @@
           <span>Load Slide-JSON</span>
           <input id="deckFile" type="file" accept="application/json,.json">
         </label>
+
+        <button id="exportPptx" class="primary-action" type="button">Export PPTX</button>
 
         <label class="field-label" for="jsonEditor">Slide-JSON</label>
         <textarea id="jsonEditor" spellcheck="false"></textarea>
