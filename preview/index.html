@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Document PPT Preview</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">P</div>
+          <div>
+            <h1>Slide Preview</h1>
+            <p id="deckMeta">Loading deck</p>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <button id="prevSlide" type="button" title="Previous slide">‹</button>
+          <span id="slideCounter">0 / 0</span>
+          <button id="nextSlide" type="button" title="Next slide">›</button>
+        </div>
+
+        <label class="file-picker">
+          <span>Load JSON</span>
+          <input id="deckFile" type="file" accept="application/json,.json">
+        </label>
+
+        <label class="field-label" for="jsonEditor">Slide-JSON</label>
+        <textarea id="jsonEditor" spellcheck="false"></textarea>
+        <button id="applyJson" type="button">Apply JSON</button>
+      </aside>
+
+      <section class="stage-wrap">
+        <div id="stage" class="stage" aria-live="polite"></div>
+        <div class="speaker-notes">
+          <span>Notes</span>
+          <p id="speakerNotes"></p>
+        </div>
+      </section>
+
+      <aside class="chat-panel">
+        <label class="field-label" for="chatPrompt">Revise With Prompt</label>
+        <textarea id="chatPrompt" placeholder="例如：把第二页压缩成三个要点，并突出实验结论"></textarea>
+        <button id="sendPrompt" type="button">Update Preview</button>
+        <div id="updateStatus" class="status"></div>
+      </aside>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
