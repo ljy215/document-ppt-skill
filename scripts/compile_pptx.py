@@ -10,6 +10,7 @@ from typing import Any
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml.xmlchemy import OxmlElement
 from pptx.util import Inches, Pt
@@ -28,6 +29,15 @@ def hex_color(value: str, fallback: str) -> RGBColor:
     if len(raw) != 6:
         raw = fallback.lstrip("#")
     return RGBColor(int(raw[0:2], 16), int(raw[2:4], 16), int(raw[4:6], 16))
+
+
+def is_tech_theme(deck: dict[str, Any]) -> bool:
+    theme = deck.get("deck", {}).get("theme", {})
+    palette = theme.get("palette", {})
+    style = str(theme.get("style", "")).lower()
+    background = str(palette.get("background", "")).lower()
+    accent = str(palette.get("accent", "")).lower()
+    return style in {"tech", "technology", "dark-tech"} or background in {"#050816", "#07111f", "#0b1120"} or accent == "#38bdf8"
 
 
 def validate_deck(deck: dict[str, Any]) -> None:
@@ -103,6 +113,12 @@ def add_visual(slide: Any, deck_path: Path, deck: dict[str, Any], visual: dict[s
     y = slide_h * float(layout.get("y", 0))
     w = slide_w * float(layout.get("w", 0.4))
     h = slide_h * float(layout.get("h", 0.4))
+    if is_tech_theme(deck):
+        panel = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(max(0, x - 0.05)), Inches(max(0, y - 0.05)), Inches(w + 0.1), Inches(h + 0.1))
+        panel.fill.solid()
+        panel.fill.fore_color.rgb = RGBColor(8, 17, 31)
+        panel.line.color.rgb = RGBColor(56, 189, 248)
+        panel.line.width = Pt(0.9)
     if image_path.exists():
         slide.shapes.add_picture(str(image_path), Inches(x), Inches(y), width=Inches(w), height=Inches(h))
     else:
@@ -116,6 +132,24 @@ def set_background(slide: Any, color: RGBColor) -> None:
     fill = slide.background.fill
     fill.solid()
     fill.fore_color.rgb = color
+
+
+def add_tech_chrome(slide: Any, slide_w: float, slide_h: float, accent: RGBColor) -> None:
+    grid_color = RGBColor(30, 58, 95)
+    for x_index in range(1, 12):
+        x = x_index * slide_w / 12
+        line = slide.shapes.add_connector(1, Inches(x), Inches(0), Inches(x), Inches(slide_h))
+        line.line.color.rgb = grid_color
+        line.line.width = Pt(0.35)
+    for y_index in range(1, 7):
+        y = y_index * slide_h / 7
+        line = slide.shapes.add_connector(1, Inches(0), Inches(y), Inches(slide_w), Inches(y))
+        line.line.color.rgb = grid_color
+        line.line.width = Pt(0.35)
+    for y, width in ((0.28, 1.4), (slide_h - 0.42, 1.0)):
+        rule = slide.shapes.add_connector(1, Inches(0.75), Inches(y), Inches(slide_w - 0.75), Inches(y))
+        rule.line.color.rgb = accent
+        rule.line.width = Pt(width)
 
 
 def add_transition(slide: Any, transition: str | None) -> None:
@@ -178,6 +212,8 @@ def render_slide(prs: Presentation, deck_path: Path, deck: dict[str, Any], slide
 
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     set_background(slide, bg)
+    if is_tech_theme(deck):
+        add_tech_chrome(slide, slide_w, slide_h, accent)
     add_transition(slide, slide_data.get("transition"))
 
     layout = slide_data.get("layout", "bullets")
