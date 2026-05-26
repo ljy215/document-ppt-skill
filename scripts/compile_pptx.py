@@ -40,6 +40,11 @@ def is_tech_theme(deck: dict[str, Any]) -> bool:
     return style in {"tech", "technology", "dark-tech"} or background in {"#050816", "#07111f", "#0b1120"} or accent == "#38bdf8"
 
 
+def is_cartoon_theme(deck: dict[str, Any]) -> bool:
+    theme = deck.get("deck", {}).get("theme", {})
+    return str(theme.get("style", "")).lower() in {"cartoon", "playful", "comic"}
+
+
 def validate_deck(deck: dict[str, Any]) -> None:
     if deck.get("schema_version") != "document-ppt.slide.v1":
         raise ValueError("schema_version must be document-ppt.slide.v1")
@@ -113,12 +118,17 @@ def add_visual(slide: Any, deck_path: Path, deck: dict[str, Any], visual: dict[s
     y = slide_h * float(layout.get("y", 0))
     w = slide_w * float(layout.get("w", 0.4))
     h = slide_h * float(layout.get("h", 0.4))
-    if is_tech_theme(deck):
+    if is_tech_theme(deck) or is_cartoon_theme(deck):
         panel = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(max(0, x - 0.05)), Inches(max(0, y - 0.05)), Inches(w + 0.1), Inches(h + 0.1))
         panel.fill.solid()
-        panel.fill.fore_color.rgb = RGBColor(8, 17, 31)
-        panel.line.color.rgb = RGBColor(56, 189, 248)
-        panel.line.width = Pt(0.9)
+        if is_cartoon_theme(deck):
+            panel.fill.fore_color.rgb = RGBColor(255, 255, 255)
+            panel.line.color.rgb = RGBColor(17, 24, 39)
+            panel.line.width = Pt(2.0)
+        else:
+            panel.fill.fore_color.rgb = RGBColor(8, 17, 31)
+            panel.line.color.rgb = RGBColor(56, 189, 248)
+            panel.line.width = Pt(0.9)
     if image_path.exists():
         slide.shapes.add_picture(str(image_path), Inches(x), Inches(y), width=Inches(w), height=Inches(h))
     else:
@@ -150,6 +160,24 @@ def add_tech_chrome(slide: Any, slide_w: float, slide_h: float, accent: RGBColor
         rule = slide.shapes.add_connector(1, Inches(0.75), Inches(y), Inches(slide_w - 0.75), Inches(y))
         rule.line.color.rgb = accent
         rule.line.width = Pt(width)
+
+
+def add_cartoon_chrome(slide: Any, slide_w: float, slide_h: float, accent: RGBColor) -> None:
+    border = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.22), Inches(0.22), Inches(slide_w - 0.44), Inches(slide_h - 0.44))
+    border.fill.background()
+    border.line.color.rgb = RGBColor(17, 24, 39)
+    border.line.width = Pt(3.0)
+    dot_specs = [
+        (0.55, 0.55, RGBColor(255, 122, 89)),
+        (slide_w - 0.95, 0.62, RGBColor(77, 215, 184)),
+        (slide_w - 1.1, slide_h - 1.0, RGBColor(255, 209, 102)),
+    ]
+    for x, y, color in dot_specs:
+        dot = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(x), Inches(y), Inches(0.35), Inches(0.35))
+        dot.fill.solid()
+        dot.fill.fore_color.rgb = color
+        dot.line.color.rgb = RGBColor(17, 24, 39)
+        dot.line.width = Pt(1.5)
 
 
 def add_transition(slide: Any, transition: str | None) -> None:
@@ -214,6 +242,8 @@ def render_slide(prs: Presentation, deck_path: Path, deck: dict[str, Any], slide
     set_background(slide, bg)
     if is_tech_theme(deck):
         add_tech_chrome(slide, slide_w, slide_h, accent)
+    if is_cartoon_theme(deck):
+        add_cartoon_chrome(slide, slide_w, slide_h, accent)
     add_transition(slide, slide_data.get("transition"))
 
     layout = slide_data.get("layout", "bullets")
